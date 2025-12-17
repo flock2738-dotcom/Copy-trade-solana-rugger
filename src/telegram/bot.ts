@@ -136,7 +136,7 @@ class TelegramBotManager {
             chat_id: chatId, 
             message_id: messageId, 
             parse_mode: 'Markdown',
-            reply_markup: { inline_keyboard: keyboards.backToMenu() }
+            reply_markup: { inline_keyboard: keyboards.backToMain() } // CORRECTION: backToMain au lieu de backToMenu
         });
         return;
     }
@@ -148,7 +148,7 @@ class TelegramBotManager {
             chat_id: chatId, 
             message_id: messageId, 
             parse_mode: 'Markdown',
-            reply_markup: { inline_keyboard: keyboards.backToMenu() }
+            reply_markup: { inline_keyboard: keyboards.backToMain() } // CORRECTION: backToMain au lieu de backToMenu
         });
         return;
     }
@@ -171,10 +171,11 @@ class TelegramBotManager {
             chat_id: chatId, 
             message_id: messageId, 
             parse_mode: 'Markdown',
-            reply_markup: { inline_keyboard: keyboards.backToMenu() }
+            reply_markup: { inline_keyboard: keyboards.backToMain() } // CORRECTION: backToMain au lieu de backToMenu
         });
         return;
-    }​​​​​​​​​​​​​​​​
+    }
+
     if (data === 'toggle_discovery') {
         const newStatus = !runtimeConfig.discoveryEnabled;
         updateRuntimeConfig({ discoveryEnabled: newStatus });
@@ -183,9 +184,9 @@ class TelegramBotManager {
             chat_id: chatId, 
             message_id: messageId, 
             parse_mode: 'Markdown',
-            reply_markup: { inline_keyboard: keyboards.backToSettings() }
+            reply_markup: { inline_keyboard: keyboards.backToSettings() } // CORRECTION: Ajouté
         });
-        this.sendSettingsMenu(chatId, messageId);
+        setTimeout(() => this.sendSettingsMenu(chatId, messageId), 1500);
         return;
     }
 
@@ -197,9 +198,9 @@ class TelegramBotManager {
             chat_id: chatId, 
             message_id: messageId, 
             parse_mode: 'Markdown',
-            reply_markup: { inline_keyboard: keyboards.backToSettings() }
+            reply_markup: { inline_keyboard: keyboards.backToSettings() } // CORRECTION: Ajouté
         });
-        this.sendSettingsMenu(chatId, messageId);
+        setTimeout(() => this.sendSettingsMenu(chatId, messageId), 1500);
         return;
     }
 
@@ -212,14 +213,14 @@ class TelegramBotManager {
                 chat_id: chatId, 
                 message_id: messageId, 
                 parse_mode: 'Markdown',
-                reply_markup: { inline_keyboard: keyboards.backToMenu() }
+                reply_markup: { inline_keyboard: keyboards.backToMain() } // CORRECTION: backToMain au lieu de backToMenu
             });
         } else {
             await this.bot.editMessageText(`❌ Erreur: Impossible d'ajouter le wallet \`${address.slice(0, 8)}...\`. Il est peut-être déjà suivi ou n'a pas été découvert.`, { 
                 chat_id: chatId, 
                 message_id: messageId, 
                 parse_mode: 'Markdown',
-                reply_markup: { inline_keyboard: keyboards.backToMenu() }
+                reply_markup: { inline_keyboard: keyboards.backToMain() } // CORRECTION: backToMain au lieu de backToMenu
             });
         }
         return;
@@ -284,7 +285,7 @@ class TelegramBotManager {
     
     await this.bot.sendMessage(chatId, responseText, { parse_mode: 'Markdown' });
     
-    this.sendSettingsMenu(chatId, previousMessageId || messageId);
+    setTimeout(() => this.sendSettingsMenu(chatId, previousMessageId || messageId), 1500);
   }
 
   async sendTradeDetected(trade: Trade) {
@@ -302,7 +303,7 @@ Voulez-vous copier ce trade ?
 
         await this.bot.sendMessage(config.chatId, message, {
             parse_mode: 'Markdown',
-            reply_markup: { inline_keyboard: keyboards.confirmTrade(trade.id) }
+            reply_markup: { inline_keyboard: keyboards.confirmTrade(trade.id) } // CORRECTION: Ajouté
         });
     } else {
         const success = await copyEngine.executeTrade(trade.id);
