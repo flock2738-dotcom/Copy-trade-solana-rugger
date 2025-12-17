@@ -1,6 +1,7 @@
 import { InlineKeyboardButton } from 'node-telegram-bot-api';
 
 export const keyboards = {
+  // Menu Principal
   mainMenu: (): InlineKeyboardButton[][] => [
     [
       { text: '▶️ Démarrer Bot', callback_data: 'start_bot' },
@@ -20,101 +21,102 @@ export const keyboards = {
     ]
   ],
 
-  settingsMenu: (): InlineKeyboardButton[][] => [
+  // Menu Paramètres - CORRECTION: Accepte les paramètres autoCopyStatus et discoveryStatus
+  settingsMenu: (autoCopyStatus: boolean, discoveryStatus: boolean): InlineKeyboardButton[][] => [
     [
       { text: '💰 Taille de Trade', callback_data: 'set_trade_size' },
       { text: '🎯 Take Profit', callback_data: 'set_tp' }
     ],
     [
       { text: '🛑 Stop Loss', callback_data: 'set_sl' },
-      { text: '🔍 Discovery Mode', callback_data: 'toggle_discovery' }
+      { text: `🔍 Discovery: ${discoveryStatus ? '🟢' : '🔴'}`, callback_data: 'toggle_discovery' }
     ],
     [
-      { text: '📊 Voir Config', callback_data: 'show_config' },
+      { text: `🔄 Auto Copy: ${autoCopyStatus ? '✅' : '❌'}`, callback_data: 'toggle_autocopy' },
+      { text: '📊 Voir Config', callback_data: 'show_config' }
+    ],
+    [
       { text: '🔙 Menu Principal', callback_data: 'main_menu' }
     ]
   ],
 
+  // Menu Taille de Trade
   tradeSizeMenu: (): InlineKeyboardButton[][] => [
     [
-      { text: '0.1 SOL', callback_data: 'size_0.1' },
-      { text: '0.5 SOL', callback_data: 'size_0.5' },
-      { text: '1 SOL', callback_data: 'size_1' }
+      { text: '0.1 SOL', callback_data: 'trade_size_0.1' },
+      { text: '0.5 SOL', callback_data: 'trade_size_0.5' },
+      { text: '1 SOL', callback_data: 'trade_size_1' }
     ],
     [
-      { text: '2 SOL', callback_data: 'size_2' },
-      { text: '5 SOL', callback_data: 'size_5' },
-      { text: '10 SOL', callback_data: 'size_10' }
+      { text: '2 SOL', callback_data: 'trade_size_2' },
+      { text: '5 SOL', callback_data: 'trade_size_5' }
     ],
     [
-      { text: '🔙 Retour', callback_data: 'settings' }
+      { text: '✏️ Personnalisé', callback_data: 'set_trade_size' }
+    ],
+    [
+      { text: '🔙 Paramètres', callback_data: 'settings' }
     ]
   ],
 
-  tpMenu: (): InlineKeyboardButton[][] => [
+  // Menu Take Profit
+  takeProfitMenu: (): InlineKeyboardButton[][] => [
     [
-      { text: '+10%', callback_data: 'tp_global_10' },
-      { text: '+25%', callback_data: 'tp_global_25' },
-      { text: '+50%', callback_data: 'tp_global_50' }
+      { text: '+25%', callback_data: 'tp_25' },
+      { text: '+50%', callback_data: 'tp_50' },
+      { text: '+100%', callback_data: 'tp_100' }
     ],
     [
-      { text: '+100%', callback_data: 'tp_global_100' },
-      { text: '+200%', callback_data: 'tp_global_200' },
-      { text: '+500%', callback_data: 'tp_global_500' }
+      { text: '+200%', callback_data: 'tp_200' },
+      { text: '+500%', callback_data: 'tp_500' }
     ],
     [
-      { text: '🔙 Retour', callback_data: 'settings' }
+      { text: '✏️ Personnalisé', callback_data: 'set_tp' }
+    ],
+    [
+      { text: '🔙 Paramètres', callback_data: 'settings' }
     ]
   ],
 
-  slMenu: (): InlineKeyboardButton[][] => [
+  // Menu Stop Loss
+  stopLossMenu: (): InlineKeyboardButton[][] => [
     [
-      { text: '-5%', callback_data: 'sl_global_5' },
-      { text: '-10%', callback_data: 'sl_global_10' },
-      { text: '-20%', callback_data: 'sl_global_20' }
+      { text: '-10%', callback_data: 'sl_10' },
+      { text: '-20%', callback_data: 'sl_20' },
+      { text: '-30%', callback_data: 'sl_30' }
     ],
     [
-      { text: '-30%', callback_data: 'sl_global_30' },
-      { text: '-50%', callback_data: 'sl_global_50' }
+      { text: '-50%', callback_data: 'sl_50' },
+      { text: '-75%', callback_data: 'sl_75' }
     ],
     [
-      { text: '🔙 Retour', callback_data: 'settings' }
+      { text: '✏️ Personnalisé', callback_data: 'set_sl' }
+    ],
+    [
+      { text: '🔙 Paramètres', callback_data: 'settings' }
     ]
   ],
 
-  discoveryMenu: (minSol: number, maxSol: number): InlineKeyboardButton[][] => [
+  // Confirmation de Trade
+  confirmTrade: (tradeId: string): InlineKeyboardButton[][] => [
     [
-      { text: 'Min: 0.1 SOL', callback_data: 'disc_min_0.1' },
-      { text: 'Min: 0.5 SOL', callback_data: 'disc_min_0.5' },
-      { text: 'Min: 1 SOL', callback_data: 'disc_min_1' }
+      { text: '✅ Copier Trade', callback_data: `copy_trade_${tradeId}` },
+      { text: '❌ Ignorer', callback_data: 'ignore_trade' }
     ],
     [
-      { text: 'Max: 5 SOL', callback_data: 'disc_max_5' },
-      { text: 'Max: 10 SOL', callback_data: 'disc_max_10' },
-      { text: 'Max: 20 SOL', callback_data: 'disc_max_20' }
-    ],
-    [
-      { text: `📊 Config: ${minSol}-${maxSol} SOL`, callback_data: 'noop' }
-    ],
-    [
-      { text: '🔙 Retour', callback_data: 'settings' }
+      { text: '⚙️ Ajuster TP/SL', callback_data: `adjust_tpsl_${tradeId}` }
     ]
   ],
 
-  // Notification seulement - pas de boutons car automatique
-  tradeDetected: (tradeId: string): InlineKeyboardButton[][] => [
-    [
-      { text: '📊 Voir Détails', callback_data: `details_${tradeId}` }
-    ]
-  ],
-
+  // Confirmation de Wallet Découvert
   confirmWallet: (address: string): InlineKeyboardButton[][] => [
     [
-      { text: '✅ Ajouter ce Wallet', callback_data: `confirm_wallet_${address}` },
+      { text: '✅ Suivre Wallet', callback_data: `follow_wallet_${address}` },
       { text: '❌ Ignorer', callback_data: 'ignore_wallet' }
     ]
   ],
 
+  // Actions sur un Wallet
   walletActions: (address: string): InlineKeyboardButton[][] => [
     [
       { text: '🔄 Activer/Désactiver', callback_data: `toggle_${address}` },
@@ -122,9 +124,13 @@ export const keyboards = {
     ],
     [
       { text: '📊 Voir Trades', callback_data: `trades_${address}` }
+    ],
+    [
+      { text: '🔙 Retour', callback_data: 'show_wallets' }
     ]
   ],
 
+  // Ajustement TP/SL
   tpSlAdjust: (tradeId: string): InlineKeyboardButton[][] => [
     [
       { text: 'TP: +10%', callback_data: `tp_10_${tradeId}` },
@@ -141,21 +147,29 @@ export const keyboards = {
       { text: 'SL: -30%', callback_data: `sl_30_${tradeId}` }
     ],
     [
-      { text: '✅ Valider et Copier', callback_data: `execute_${tradeId}` }
+      { text: '✅ Valider et Copier', callback_data: `copy_trade_${tradeId}` }
+    ],
+    [
+      { text: '❌ Annuler', callback_data: 'ignore_trade' }
     ]
   ],
 
-  positionActions: (tradeId: string): InlineKeyboardButton[][] => [
+  // Boutons de retour
+  backToMenu: (): InlineKeyboardButton[][] => [
     [
-      { text: '💰 Vendre Maintenant', callback_data: `sell_now_${tradeId}` },
-      { text: '📊 Détails', callback_data: `details_${tradeId}` }
-    ],
+      { text: '🔙 Menu Principal', callback_data: 'main_menu' }
+    ]
+  ],
+
+  backToSettings: (): InlineKeyboardButton[][] => [
     [
-      { text: '⚙️ Modifier TP/SL', callback_data: `modify_tpsl_${tradeId}` }
+      { text: '🔙 Paramètres', callback_data: 'settings' }
     ]
   ],
 
   backToMain: (): InlineKeyboardButton[][] => [
-    [{ text: '🔙 Menu Principal', callback_data: 'main_menu' }]
+    [
+      { text: '🔙 Menu Principal', callback_data: 'main_menu' }
+    ]
   ]
 };
