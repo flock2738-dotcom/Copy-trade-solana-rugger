@@ -1,8 +1,6 @@
 import { config, validateConfig, runtimeConfig } from './config/environment';
-import { listener } from './core/listener';
 import { copyEngine } from './core/copyEngine';
 import { discoveryWallet } from './core/discoveryWallet';
-import { telegramBot } from './telegram/bot';
 import { ledger } from './core/ledger';
 
 async function main() {
@@ -10,60 +8,56 @@ async function main() {
     console.log('🚀 DÉMARRAGE DU BOT COPY TRADING SOLANA');
     console.log('==========================================\n');
 
-    // 1. Valider la configuration
     console.log('🔧 Validation de la configuration...');
     validateConfig();
     console.log('✅ Configuration valide\n');
 
-    // 2. Charger l'état persistant
     console.log('💾 Chargement de l\'état précédent...');
     ledger.loadState();
     console.log('✅ État chargé.\n');
 
-    // 3. Afficher les paramètres
     console.log('⚙️ PARAMÈTRES:');
     console.log(`   Mode: ${config.mode}`);
     console.log(`   Master Wallet: ${config.masterWallet.slice(0, 8)}...`);
-    console.log(`   Auto Copy: ${runtimeConfig.autoCopy ? '✅ OUI' : '❌ NON'}`); 
+    console.log(`   Auto Copy: ${runtimeConfig.autoCopy ? '✅ OUI' : '❌ NON'}`);
     console.log('\n📊 Configuration Runtime (modifiable via Telegram):');
     console.log(`   Discovery: ${runtimeConfig.discoveryEnabled ? '🟢 ACTIF' : '🔴 INACTIF'}`);
     console.log(`   Discovery Range: ${runtimeConfig.minSolTransfer} - ${runtimeConfig.maxSolTransfer} SOL`);
     console.log(`   Taille Trade: ${runtimeConfig.tradeSize} SOL`);
-    console.log(`   TP: +${runtimeConfig.tpPercent}% | SL: -${runtimeConfig.slPercent}%`);
-    console.log('');
-    
-    // 4. Initialiser le Telegram Bot. 
-    console.log('💬 Bot Telegram initialisé. En attente de commandes...');
+    console.log(`   TP/SL: +${runtimeConfig.tpPercent}% / -${runtimeConfig.slPercent}%\n`);
 
-    // 5. Lancer les modules si la configuration initiale le permet (ou attente via Telegram)
-    console.log('5. Tentative de démarrage du Listener et du Discovery Wallet si actif...');
+    console.log('▶️ Démarrage des modules...');
     
-    if (telegramBot.isActive()) { 
-      listener.start(); 
-      discoveryWallet.start();
-    } else {
-      console.log('   Le Listener et Discovery Wallet sont en PAUSE (démarrer via Telegram)');
-    }
+    // Import dynamique pour éviter les dépendances circulaires
+    const { listener } = await import('./core/listener');
+    const { telegramBot } = await import('./telegram/bot');
     
-    // 6. Lancer l'engine de monitoring (pour surveiller les TP/SL des trades actifs)
-    console.log('6. Démarrage de l\'Engine de monitoring...');
-    copyEngine.startMonitoring();
+    listener.start();
+    discoveryWallet.start();
 
+    telegramBot.init();
+    console.log('✅ Bot Telegram initialisé');
+
+    await telegramBot.getBot().sendMessage(
+      config.chatId,
+      '🚀 **BOT DÉMARRÉ**\n\nEnvoyez /start pour interagir.',
+      { parse_mode: 'Markdown' }
+    );
+    
     console.log('\n✅ Le bot est prêt.');
     console.log('Instructions: Ouvrez votre Telegram et envoyez /start au bot.');
     
-    // 7. Monitoring périodique
     setInterval(() => {
       const stats = ledger.getStats();
       console.log(`📊 [${new Date().toLocaleTimeString()}] Positions: ${stats.activePositions} | PNL: ${stats.totalPnl.toFixed(4)} SOL`);
       
       discoveryWallet.clearOldDiscoveries(24);
-      ledger.saveState(); 
-    }, 60000); 
+      ledger.saveState();
+    }, 60000);
 
-    // 8. Gestion des erreurs non capturées et arrêt propre
-    process.on('unhandledRejection', (error: any) => {
+    process.on('unhandledRejection', async (error: any) => {
       console.error('❌ Unhandled rejection:', error);
+      const { telegramBot } = await import('./telegram/bot');
       telegramBot.getBot().sendMessage(
         config.chatId,
         `⚠️ Erreur non gérée: ${error.message}`
@@ -73,10 +67,13 @@ async function main() {
     process.on('SIGINT', async () => {
       console.log('\n🛑 Arrêt du bot...');
       
-      listener.stop(); 
+      const { listener } = await import('./core/listener');
+      const { telegramBot } = await import('./telegram/bot');
+      
+      listener.stop();
       discoveryWallet.stop();
       copyEngine.stopAllMonitoring();
-      ledger.saveState(); 
+      ledger.saveState();
       
       await telegramBot.getBot().sendMessage(
         config.chatId,
@@ -90,15 +87,16 @@ async function main() {
     console.error('❌ ERREUR FATALE:', error);
     
     try {
+      const { telegramBot } = await import('./telegram/bot');
       await telegramBot.getBot().sendMessage(
         config.chatId,
-        `❌ **ERREUR FATALE**\n\n${error.message}`,
+        `❌ **ERREUR FATALE**\n\n\`${error.message}\``,
         { parse_mode: 'Markdown' }
       );
-    } catch (tgError) {
-      console.error('❌ Échec de l\'envoi de la notification Telegram', tgError);
+    } catch (e) {
+      console.error('Impossible d\'envoyer le message d\'erreur au chat Telegram.');
     }
-    
+
     process.exit(1);
   }
 }
