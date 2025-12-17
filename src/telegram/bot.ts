@@ -175,3 +175,186 @@ class TelegramBotManager {
         });
         return;
     }​​​​​​​​​​​​​​​​
+    if (data === 'toggle_discovery') {
+        const newStatus = !runtimeConfig.discoveryEnabled;
+        updateRuntimeConfig({ discoveryEnabled: newStatus });
+        const statusText = newStatus ? '🟢 ACTIF' : '🔴 INACTIF';
+        await this.bot.editMessageText(`✅ Discovery Mode mis à jour: **${statusText}**`, { 
+            chat_id: chatId, 
+            message_id: messageId, 
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: keyboards.backToSettings() }
+        });
+        this.sendSettingsMenu(chatId, messageId);
+        return;
+    }
+
+    if (data === 'toggle_autocopy') {
+        const newStatus = !runtimeConfig.autoCopy;
+        updateRuntimeConfig({ autoCopy: newStatus });
+        const statusText = newStatus ? '✅ OUI' : '❌ NON';
+        await this.bot.editMessageText(`✅ Auto Copy mis à jour: **${statusText}**`, { 
+            chat_id: chatId, 
+            message_id: messageId, 
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: keyboards.backToSettings() }
+        });
+        this.sendSettingsMenu(chatId, messageId);
+        return;
+    }
+
+    if (data.startsWith('follow_wallet_')) {
+        const address = data.substring('follow_wallet_'.length);
+        const success = await discoveryWallet.addDiscoveredWalletToFollow(address);
+        
+        if (success) {
+            await this.bot.editMessageText(`✅ Le wallet \`${address.slice(0, 8)}...\` a été ajouté à la liste des suivis.`, { 
+                chat_id: chatId, 
+                message_id: messageId, 
+                parse_mode: 'Markdown',
+                reply_markup: { inline_keyboard: keyboards.backToMenu() }
+            });
+        } else {
+            await this.bot.editMessageText(`❌ Erreur: Impossible d'ajouter le wallet \`${address.slice(0, 8)}...\`. Il est peut-être déjà suivi ou n'a pas été découvert.`, { 
+                chat_id: chatId, 
+                message_id: messageId, 
+                parse_mode: 'Markdown',
+                reply_markup: { inline_keyboard: keyboards.backToMenu() }
+            });
+        }
+        return;
+    }
+
+    if (data === 'ignore_wallet') {
+        this.bot.deleteMessage(chatId, messageId);
+        return;
+    }
+  }
+
+  private async handleTextInput(chatId: number, text: string, messageId: number) {
+    if (!this.waitingForInput) return;
+    
+    const step = this.waitingForInput.step;
+    const previousMessageId = this.waitingForInput.data?.messageId;
+    this.waitingForInput = null;
+
+    let responseText = `✅ Modification enregistrée.`;
+
+    if (step === 'set_trade_size') {
+        const value = parseFloat(text);
+        if (isNaN(value) || value <= 0) {
+            responseText = '❌ Erreur: Veuillez entrer un nombre valide supérieur à zéro.';
+        } else {
+            updateRuntimeConfig({ tradeSize: value });
+            responseText = `✅ Taille de trade mise à jour à **${value} SOL**.`;
+        }
+    } else if (step === 'set_tp') {
+        const value = parseInt(text);
+        if (isNaN(value) || value <= 0) {
+            responseText = '❌ Erreur: Veuillez entrer un pourcentage valide (nombre entier > 0).';
+        } else {
+            updateRuntimeConfig({ tpPercent: value });
+            responseText = `✅ Take Profit mis à jour à **+${value}%**.`;
+        }
+    } else if (step === 'set_sl') {
+        const value = parseInt(text);
+        if (isNaN(value) || value <= 0) {
+            responseText = '❌ Erreur: Veuillez entrer un pourcentage valide (nombre entier > 0).';
+        } else {
+            updateRuntimeConfig({ slPercent: value });
+            responseText = `✅ Stop Loss mis à jour à **-${value}%**.`;
+        }
+    } else if (step === 'add_wallet') {
+        const address = text.trim();
+        try {
+            new PublicKey(address);
+            ledger.addWallet(address, 'manual');
+            const { listener } = await import('../core/listener');
+            listener.addWallet(address);
+            responseText = `✅ Wallet \`${address.slice(0, 8)}...\` ajouté à la liste des suivis.`;
+        } catch (e) {
+            responseText = `❌ Erreur: \`${address}\` n'est pas une adresse Solana valide.`;
+        }
+    }
+
+    if (previousMessageId) {
+        try { this.bot.deleteMessage(chatId, previousMessageId); } catch {}
+    }
+    try { this.bot.deleteMessage(chatId, messageId); } catch {}
+    
+    await this.bot.sendMessage(chatId, responseText, { parse_mode: 'Markdown' });
+    
+    this.sendSettingsMenu(chatId, previousMessageId || messageId);
+  }
+
+  async sendTradeDetected(trade: Trade) {
+    if (!runtimeConfig.autoCopy) {
+        const message = `
+⚠️ **TRADE DÉTECTÉ**
+
+Wallet Source: \`${trade.walletSource.slice(0, 8)}...\`
+Token: **${trade.tokenSymbol || 'Unknown'}**
+Type: **${trade.type}**
+Montant: ${trade.amountSol} SOL
+
+Voulez-vous copier ce trade ?
+        `;
+
+        await this.bot.sendMessage(config.chatId, message, {
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: keyboards.confirmTrade(trade.id) }
+        });
+    } else {
+        const success = await copyEngine.executeTrade(trade.id);
+        
+        if (success) {
+            await this.bot.sendMessage(
+                config.chatId,
+                `✅ **TRADE EXÉCUTÉ AUTOMATIQUEMENT**\n\nTrade ID: ${trade.id}\nVous serez notifié quand TP/SL sera atteint.`,
+                { parse_mode: 'Markdown' }
+            );
+        }
+    }
+  }
+
+  sendWalletDiscovered(wallet: string, amount: number) {
+    const cfg = getRuntimeConfig();
+    
+    if (!cfg.discoveryEnabled) {
+      return;
+    }
+    
+    const message = `
+🔍 **NOUVEAU WALLET DÉCOUVERT**
+
+Wallet: \`${wallet}\`
+Transfer: ${amount} SOL
+From: Inconnu
+
+Voulez-vous suivre ce wallet ?
+    `;
+
+    this.bot.sendMessage(config.chatId, message, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: keyboards.confirmWallet(wallet) }
+    });
+  }
+
+  sendTPSLTriggered(trade: Trade, type: 'TP' | 'SL') {
+    const emoji = type === 'TP' ? '🎯' : '🛑';
+    const message = `
+${emoji} **${type} ATTEINT**
+
+Token: ${trade.tokenSymbol || 'Unknown'}
+Prix entrée: ${trade.buyPrice}
+Prix sortie: ${trade.sellPrice}
+PNL: ${trade.pnlPercent?.toFixed(2)}% (${trade.pnl?.toFixed(4)} SOL)
+
+La position a été fermée automatiquement.
+    `;
+
+    this.bot.sendMessage(config.chatId, message, { parse_mode: 'Markdown' });
+  }
+}
+
+export const telegramBot = new TelegramBotManager();
