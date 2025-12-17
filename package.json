@@ -1,26 +1,36 @@
 {
-  "name": "solana-copy-bot",
+  "name": "solana-copy-trading-bot",
   "version": "1.0.0",
-  "description": "Bot Telegram de copy trading Solana avec TP/SL automatique",
+  "description": "Bot de copy trading Solana avec Telegram",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "solana",
+    "trading",
+    "bot",
+    "telegram"
+  ],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "@solana/web3.js": "^1.87.6",
-    "@solana/spl-token": "^0.3.9",
-    "node-telegram-bot-api": "^0.64.0",
-    "axios": "^1.6.2",
-    "dotenv": "^16.3.1",
-    "ws": "^8.14.2"
+    "@solana/web3.js": "^1.95.8",
+    "node-telegram-bot-api": "^0.66.0",
+    "ws": "^8.18.0",
+    "dotenv": "^16.4.7"
   },
   "devDependencies": {
-    "@types/node": "^20.10.4",
-    "@types/node-telegram-bot-api": "^0.64.0",
-    "@types/ws": "^8.5.9",
-    "typescript": "^5.3.3",
+    "@types/node": "^22.10.2",
+    "@types/node-telegram-bot-api": "^0.64.7",
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.7.2",
     "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
